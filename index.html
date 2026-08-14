@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>myHomePage · 我的首页</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23c9b8e8'/%3E%3Cstop offset='1' stop-color='%23b8d4f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ccircle cx='32' cy='32' r='10' fill='white' opacity='0.92'/%3E%3C/svg%3E">
+<style>
+:root{--sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",Roboto,sans-serif;--serif:"Noto Serif SC","Songti SC","STSong","SimSun",Georgia,serif;--mono:"SF Mono","Cascadia Code","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;background:#f7f6f3;color:#3c3b38}
+
+/* 素雅弥散光背景：浅色底 + 低饱和微光，静止无动画 */
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(38% 46% at 16% 14%, rgba(188,176,233,.24), transparent 70%),
+    radial-gradient(40% 48% at 86% 10%, rgba(166,196,238,.20), transparent 70%),
+    radial-gradient(36% 44% at 82% 92%, rgba(186,222,214,.20), transparent 70%),
+    radial-gradient(30% 36% at 12% 90%, rgba(236,208,182,.16), transparent 70%);
+  filter:blur(70px);
+}
+
+.brand{position:fixed;top:22px;left:26px;z-index:40;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:#8a8578;letter-spacing:.08em}
+.brand i{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#c9b8e8,#b8d4f7);box-shadow:0 0 10px rgba(150,130,220,.4)}
+.brand em{font-style:normal;opacity:.55;font-weight:400;margin-left:2px}
+
+.stage{position:relative;z-index:2;min-height:100vh;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:100px 24px 80px;text-align:center}
+.hero{display:flex;flex-direction:column;align-items:center;padding:48px 64px 40px;width:min(660px,92vw);
+  background:rgba(255,255,255,.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.95);border-radius:28px;
+  box-shadow:0 24px 60px rgba(60,55,80,.10),0 4px 14px rgba(60,55,80,.05)}
+.clock{font-size:80px;font-weight:500;line-height:1.05;letter-spacing:.02em;color:#33322f;font-variant-numeric:tabular-nums}
+.date{font-size:14px;margin-top:10px;color:#8b8a85;letter-spacing:.06em}
+.greet{font-size:16px;margin-top:22px;color:#6f6e69}
+.search{width:min(560px,86vw);margin-top:30px}
+.search input{width:100%;height:52px;border-radius:999px;border:1px solid #e8e5de;background:rgba(255,255,255,.85);padding:0 24px;font-size:15px;outline:none;font-family:inherit;color:#3c3b38;transition:border-color .2s,box-shadow .2s}
+.search input::placeholder{color:#b0aea7}
+.search input:focus{border-color:#c3b8e8;box-shadow:0 0 0 4px rgba(178,160,232,.16)}
+.links{display:grid;grid-template-columns:repeat(4,104px);gap:18px;margin-top:40px}
+.link{display:flex;flex-direction:column;align-items:center;gap:9px;text-decoration:none;padding:18px 8px 15px;border-radius:16px;
+  background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.95);color:#55544f;
+  box-shadow:0 6px 16px rgba(60,55,80,.07);
+  transition:transform .18s,box-shadow .18s,background .18s}
+.link:hover{transform:translateY(-4px);background:rgba(255,255,255,.94);box-shadow:0 14px 28px rgba(60,55,80,.13)}
+.ic{font-size:24px;line-height:1}
+.lb{font-size:12.5px;color:#6f6e69}
+.foot{position:fixed;bottom:22px;left:0;right:0;text-align:center;font-size:12px;color:#b5b2aa;letter-spacing:.12em;z-index:40}
+
+@media (max-width:560px){
+  .links{grid-template-columns:repeat(4,70px);gap:10px}
+  .link{padding:12px 3px 10px}
+  .clock{font-size:58px}
+  .hero{padding:34px 18px 28px}
+  .brand{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="brand"><i></i>myHomePage<em>· 轻 静 简</em></div>
+
+<main class="stage">
+  <div class="hero">
+    <div class="clock">--:--</div>
+    <div class="date">—</div>
+    <div class="greet">—</div>
+    <form class="search" action="https://www.bing.com/search" method="get" target="_blank">
+      <input type="text" name="q" placeholder="搜索或输入网址，回车直达 Bing" autocomplete="off">
+    </form>
+  </div>
+  <nav class="links">
+    <a class="link" href="https://www.bilibili.com" target="_blank" rel="noopener"><span class="ic">▶</span><span class="lb">视频</span></a>
+    <a class="link" href="https://music.163.com" target="_blank" rel="noopener"><span class="ic">🎵</span><span class="lb">音乐</span></a>
+    <a class="link" href="https://mail.163.com" target="_blank" rel="noopener"><span class="ic">✉️</span><span class="lb">邮箱</span></a>
+    <a class="link" href="https://www.weather.com.cn" target="_blank" rel="noopener"><span class="ic">🌤</span><span class="lb">天气</span></a>
+    <a class="link" href="https://www.zhihu.com" target="_blank" rel="noopener"><span class="ic">📚</span><span class="lb">知乎</span></a>
+    <a class="link" href="https://github.com" target="_blank" rel="noopener"><span class="ic">💻</span><span class="lb">GitHub</span></a>
+    <a class="link" href="https://fanyi.baidu.com" target="_blank" rel="noopener"><span class="ic">🌐</span><span class="lb">翻译</span></a>
+    <a class="link" href="https://www.taobao.com" target="_blank" rel="noopener"><span class="ic">🛒</span><span class="lb">购物</span></a>
+  </nav>
+</main>
+
+<p class="foot">myHomePage · 回车直达 Bing · 可在 README 中查看自定义方法</p>
+
+<script>
+function tick(){
+  var d = new Date();
+  var h = String(d.getHours()).padStart(2,'0');
+  var m = String(d.getMinutes()).padStart(2,'0');
+  var el = document.querySelector('.clock');
+  if(el) el.textContent = h + ':' + m;
+  var dt = document.querySelector('.date');
+  if(dt){
+    var wd = ['日','一','二','三','四','五','六'][d.getDay()];
+    dt.textContent = (d.getMonth()+1) + '月 ' + d.getDate() + '日 · 星期' + wd;
+  }
+  var g = document.querySelector('.greet');
+  if(g){
+    var hr = d.getHours();
+    g.textContent = hr < 6 ? '夜深了，注意休息'
+      : hr < 10 ? '早上好，愿你被世界温柔以待'
+      : hr < 12 ? '上午好，元气满满'
+      : hr < 14 ? '中午好，别忘了好好吃饭'
+      : hr < 18 ? '下午好，继续加油'
+      : '晚上好，辛苦一天了';
+  }
+}
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
