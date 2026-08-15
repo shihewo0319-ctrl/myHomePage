@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""myHomePage 静态服务器 + 网站图标(favicon)代理缓存
+"""myHomePage 静态服务器 + 网站图标(favicon)代理缓存 + 应用台数据存储
 
 用法:
     python3 server.py [端口]        # 默认 43210
-特性:
+接口:
     - 静态托管当前目录
-    - GET /favicon/?u=<scheme://host>  代理抓取该站点的真实网页图标并缓存到
-      ~/.cache/myhomepage-favicons/
-    - 只允许抓取 index.html 中 APPS 数组里的站点（自动解析，防 SSRF）
+    - GET  /apps.json                    返回应用台列表（无文件时为 404）
+    - POST /apps.json                    保存应用台列表（仅限本机/局域网来源，防外网篡改）
+    - GET  /favicon/?u=<scheme://host>   抓取并缓存该站点真实图标
 """
+import ipaddress
+import json
+import os
 import re
 import sys
 import socket
@@ -19,18 +22,20 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+APPS_FILE = ROOT / "apps.json"
 CACHE = Path.home() / ".cache" / "myhomepage-favicons"
 CACHE.mkdir(parents=True, exist_ok=True)
 
 UA = "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0 myHomePage-favicon/1.0"
 TIMEOUT = 7
 
+# ---------- 图标允许列表（index.html 种子 + apps.json 动态数据） ----------
+_allow_cache = {"key": None, "origins": set()}
 
-def load_allowlist():
-    """从 index.html 的 APPS 数组解析允许抓图标的站点，避免开放代理。"""
+
+def _origins_from_text(text):
     origins = set()
-    html = (ROOT / "index.html").read_text(encoding="utf-8", errors="ignore")
-    for m in re.finditer(r"url\s*:\s*'((?:https?://)[^']+)'", html):
+    for m in re.finditer(r"(?:['\"])?url['\"]?\s*:\s*['\"]([^'\"]+)['\"]", text):
         try:
             p = urllib.parse.urlparse(m.group(1))
             if p.scheme in ("http", "https") and p.netloc:
@@ -40,8 +45,49 @@ def load_allowlist():
     return origins
 
 
-ALLOWED = load_allowlist()
+def load_allowlist():
+    try:
+        mt1 = (ROOT / "index.html").stat().st_mtime
+    except OSError:
+        mt1 = 0
+    mt2 = APPS_FILE.stat().st_mtime if APPS_FILE.exists() else 0
+    key = (mt1, mt2)
+    if key == _allow_cache["key"]:
+        return _allow_cache["origins"]
+    origins = set()
+    try:
+        origins |= _origins_from_text((ROOT / "index.html").read_text(encoding="utf-8", errors="ignore"))
+    except OSError:
+        pass
+    if APPS_FILE.exists():
+        try:
+            origins |= _origins_from_text(APPS_FILE.read_text(encoding="utf-8", errors="ignore"))
+        except OSError:
+            pass
+    _allow_cache["key"] = key
+    _allow_cache["origins"] = origins
+    return origins
 
+
+def is_local_ip(ip):
+    """判断客户端来源是否为本机/局域网（用于限制写操作）。"""
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    if a.is_loopback or a.is_link_local or a.is_private or a.is_reserved:
+        return True
+    if isinstance(a, ipaddress.IPv6Address):
+        try:
+            mapped = a.ipv4_mapped
+            if mapped:
+                return mapped.is_private or mapped.is_loopback
+        except AttributeError:
+            pass
+    return False
+
+
+# ---------- favicon 抓取 ----------
 
 def sniff(data, fallback=""):
     if data.startswith(b"\x89PNG"):
@@ -109,16 +155,35 @@ def resolve_icon(scheme, host):
     return None, None
 
 
+# ---------- HTTP 处理器 ----------
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=str(ROOT), **kw)
 
+    def _send_json(self, obj, code=200):
+        data = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/apps.json":
+            if APPS_FILE.exists():
+                try:
+                    self._send_json(json.loads(APPS_FILE.read_text(encoding="utf-8")))
+                except Exception:
+                    self.send_error(500, "apps.json corrupted")
+            else:
+                self.send_error(404, "no apps.json")
+            return
         if parsed.path == "/favicon/":
             qs = urllib.parse.parse_qs(parsed.query)
             u = (qs.get("u") or [""])[0]
-            if u not in ALLOWED:
+            if u not in load_allowlist():
                 self.send_error(400, "host not allowed")
                 return
             p = urllib.parse.urlparse(u)
@@ -141,6 +206,46 @@ class Handler(SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
+    def do_POST(self):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/apps.json":
+            if not is_local_ip(self.client_address[0]):
+                self.send_error(403, "local access required")
+                return
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                body = self.rfile.read(length) if length else b""
+                lst = json.loads(body.decode("utf-8"))
+                if not isinstance(lst, list):
+                    raise ValueError
+            except Exception:
+                self.send_error(400, "invalid JSON list")
+                return
+            clean = []
+            seen = set()
+            for item in lst:
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get("name", "")).strip()
+                url = str(item.get("url", "")).strip()
+                if not name or len(name) > 80:
+                    continue
+                p = urllib.parse.urlparse(url)
+                if p.scheme not in ("http", "https") or not p.netloc:
+                    continue
+                if url in seen:
+                    continue
+                seen.add(url)
+                clean.append({"name": name[:80], "url": url})
+            clean = clean[:200]
+            tmp = APPS_FILE.with_suffix(".json.tmp")
+            tmp.write_text(json.dumps(clean, ensure_ascii=False, indent=2), encoding="utf-8")
+            os.replace(tmp, APPS_FILE)
+            _allow_cache["key"] = None
+            self._send_json({"ok": True, "count": len(clean)})
+            return
+        self.send_error(404)
+
     def log_message(self, fmt, *args):
         pass  # 静默日志
 
@@ -153,5 +258,5 @@ if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 43210
     HTTPServerV6.allow_reuse_address = True
     srv = HTTPServerV6(("::", port), Handler)
-    print(f"myHomePage: http://[::]:{port}/  (含 /favicon/ 图标代理，已缓存目录 {CACHE})", flush=True)
+    print(f"myHomePage: http://[::]:{port}/  (含 /favicon/ 图标代理与 /apps.json 应用台存储)", flush=True)
     srv.serve_forever()

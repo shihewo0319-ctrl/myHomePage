@@ -71,7 +71,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .modal{position:fixed;inset:0;z-index:60;background:rgba(42,38,54,.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:24px}
 .modal.open{display:flex;animation:fadeIn .18s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal-box{width:min(720px,94vw);max-height:84vh;background:rgba(255,255,255,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.98);border-radius:24px;box-shadow:0 30px 80px rgba(50,44,70,.3);display:flex;flex-direction:column;overflow:hidden}
+.modal-box{position:relative;width:min(720px,94vw);max-height:84vh;background:rgba(255,255,255,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.98);border-radius:24px;box-shadow:0 30px 80px rgba(50,44,70,.3);display:flex;flex-direction:column;overflow:hidden}
 .modal-head{display:flex;align-items:center;gap:14px;padding:18px 22px;border-bottom:1px solid #efebe3}
 .modal-title{font-size:16px;font-weight:700;color:#4a4842;flex-shrink:0}
 .modal-search{flex:1}
@@ -87,6 +87,34 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .av .fav{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:7px;background:#fff;border-radius:13px;box-sizing:border-box}
 .nm{font-size:12px;color:#5c5b55;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dock-empty{grid-column:1/-1;text-align:center;color:#a5a29a;font-size:13px;padding:30px 0}
+
+/* 应用台设置模式 */
+.set-btn{border:1px solid #e5e2db;background:#f6f4ef;border-radius:999px;padding:0 14px;height:34px;cursor:pointer;color:#6f6e69;font-size:12.5px;flex-shrink:0;transition:background .15s,border-color .15s,color .15s;font-family:inherit}
+.set-btn:hover{background:#ebe8e0}
+.set-btn.on{background:linear-gradient(135deg,#efe8fb,#e3ecf8);border-color:#cfc4e8;color:#5b5580}
+.dock-grid.editing .dock-app{position:relative;cursor:default}
+.dock-grid.editing .dock-app:hover{transform:none;background:rgba(255,255,255,.85)}
+.del{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:999px;background:#e5554f;color:#fff;border:none;cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15);font-family:inherit}
+.del:hover{background:#d04039}
+.add-tile{border:2px dashed #d8d4c8;background:rgba(255,255,255,.5);color:#9a978f;cursor:pointer;font-family:inherit}
+.add-tile:hover{transform:translateY(-3px);background:#fff}
+.av.plus{background:#f2f0eb;color:#8a8578}
+.dock-foot{display:none;justify-content:space-between;align-items:center;gap:10px;padding:12px 22px 16px;border-top:1px solid #efebe3}
+.dock-foot.show{display:flex}
+.foot-msg{font-size:12.5px;color:#b0685f;flex:1;text-align:left}
+.foot-btns{display:flex;gap:10px}
+.save-btn{border:none;background:linear-gradient(135deg,#b8a6e8,#9db8e8);color:#fff;font-size:13px;font-weight:600;padding:8px 20px;border-radius:999px;cursor:pointer;font-family:inherit}
+.save-btn:hover{opacity:.9}
+.cancel-btn{border:1px solid #e5e2db;background:#f6f4ef;color:#6f6e69;font-size:13px;padding:8px 18px;border-radius:999px;cursor:pointer;font-family:inherit}
+.cancel-btn:hover{background:#ebe8e0}
+.add-overlay{position:absolute;inset:0;z-index:5;background:rgba(250,249,246,.9);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+.add-overlay.show{display:flex}
+.add-box{width:min(340px,86%);background:#fff;border:1px solid #e9e6df;border-radius:18px;box-shadow:0 18px 44px rgba(60,55,80,.18);padding:20px}
+.add-title{font-size:14px;font-weight:700;color:#4a4842;margin-bottom:14px}
+.add-box input{width:100%;height:40px;border:1px solid #e8e5de;border-radius:10px;padding:0 14px;font-size:13.5px;outline:none;font-family:inherit;color:#3c3b38;margin-bottom:10px;background:#fbfaf7}
+.add-box input:focus{border-color:#c3b8e8;box-shadow:0 0 0 3px rgba(178,160,232,.15)}
+.add-err{font-size:12px;color:#c0554b;margin:0 0 10px;display:none}
+.add-actions{display:flex;justify-content:flex-end;gap:8px}
 
 @media (max-width:560px){
   .links{grid-template-columns:repeat(5,60px);gap:8px}
@@ -142,9 +170,29 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="modal-head">
       <span class="modal-title">应用台</span>
       <div class="modal-search"><input type="text" id="dockFilter" placeholder="搜索应用…" autocomplete="off"></div>
+      <button class="set-btn" id="dockSettingsBtn">⚙ 设置</button>
       <button class="modal-close" id="dockClose" aria-label="关闭">✕</button>
     </div>
     <div class="modal-body"><div class="dock-grid" id="dockGrid"></div></div>
+    <div class="dock-foot" id="dockFoot">
+      <span class="foot-msg" id="footMsg"></span>
+      <div class="foot-btns">
+        <button class="cancel-btn" id="dockCancelBtn">取消</button>
+        <button class="save-btn" id="dockSaveBtn">保存</button>
+      </div>
+    </div>
+    <div class="add-overlay" id="addOverlay">
+      <div class="add-box">
+        <div class="add-title">添加应用</div>
+        <input type="text" id="addName" placeholder="名称（如 GitHub）" autocomplete="off">
+        <input type="text" id="addUrl" placeholder="网址（https://github.com）" autocomplete="off">
+        <p class="add-err" id="addErr"></p>
+        <div class="add-actions">
+          <button class="cancel-btn" id="addCancelBtn">取消</button>
+          <button class="save-btn" id="addOkBtn">添加</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -244,30 +292,42 @@ var PALETTE = [
   var modal = document.getElementById('dockModal');
   var grid = document.getElementById('dockGrid');
   var filter = document.getElementById('dockFilter');
+  var setBtn = document.getElementById('dockSettingsBtn');
+  var foot = document.getElementById('dockFoot');
+  var footMsg = document.getElementById('footMsg');
+  var overlay = document.getElementById('addOverlay');
+  var addName = document.getElementById('addName');
+  var addUrl = document.getElementById('addUrl');
+  var addErr = document.getElementById('addErr');
 
+  var editing = false;
+  var currentApps = APPS.map(function(a){ return { name:a.name, url:a.url }; });
+  var savedApps = currentApps.map(function(a){ return { name:a.name, url:a.url }; });
+
+  function clone(list){ return list.map(function(a){ return { name:a.name, url:a.url }; }); }
   function hashOf(s){ var h=0; for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+
   function renderApps(kw){
     var k = (kw||'').toLowerCase();
     grid.innerHTML = '';
+    grid.classList.toggle('editing', editing);
     var shown = 0;
-    APPS.forEach(function(app){
-      if(k && app.name.toLowerCase().indexOf(k) === -1 && app.url.toLowerCase().indexOf(k) === -1) return;
+    currentApps.forEach(function(app, idx){
+      if(!editing && k && app.name.toLowerCase().indexOf(k) === -1 && app.url.toLowerCase().indexOf(k) === -1) return;
       shown++;
-      var domain = app.url.replace(/^https?:\/\//,'').split('/')[0];
+      var domain = '';
+      var origin = null;
+      try { var u = new URL(app.url); origin = u.origin; domain = u.host; } catch(e) { domain = app.url; }
       var c = PALETTE[hashOf(domain) % PALETTE.length];
       var a = document.createElement('a');
       a.className = 'dock-app';
       a.href = app.url;
-      a.target = '_blank';
-      a.rel = 'noopener';
       var av = document.createElement('span');
       av.className = 'av';
       av.style.background = c[0];
       av.style.color = c[1];
       av.textContent = (app.name.charAt(0) || '?').toUpperCase();
       // 真实网页图标：经本机服务器 /favicon/ 代理抓取，失败自动回退字母
-      var origin = null;
-      try { origin = new URL(app.url).origin; } catch(e) {}
       if(origin){
         var img = document.createElement('img');
         img.className = 'fav';
@@ -282,16 +342,108 @@ var PALETTE = [
       nm.title = app.url;
       a.appendChild(av);
       a.appendChild(nm);
-      a.addEventListener('click', function(){ closeDock(); });
+      if(editing){
+        a.addEventListener('click', function(e){ e.preventDefault(); });
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'del';
+        del.textContent = '✕';
+        del.title = '删除 ' + app.name;
+        del.addEventListener('click', function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          currentApps.splice(idx, 1);
+          renderApps('');
+        });
+        a.appendChild(del);
+      } else {
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.addEventListener('click', function(){ closeDock(); });
+      }
       grid.appendChild(a);
     });
-    if(shown === 0){
+    if(editing){
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'dock-app add-tile';
+      add.innerHTML = '<span class="av plus">＋</span><span class="nm">添加应用</span>';
+      add.addEventListener('click', openAddForm);
+      grid.appendChild(add);
+    }
+    if(shown === 0 && !editing){
       var p = document.createElement('p');
       p.className = 'dock-empty';
       p.textContent = '没有匹配的应用';
       grid.appendChild(p);
     }
   }
+
+  function enterSettings(){
+    currentApps = clone(savedApps);
+    editing = true;
+    setBtn.classList.add('on');
+    foot.classList.add('show');
+    document.querySelector('.modal-search').style.display = 'none';
+    filter.value = '';
+    footMsg.textContent = '编辑后记得点「保存」';
+    renderApps('');
+  }
+  function exitSettings(commit){
+    if(commit){
+      savedApps = clone(currentApps);
+    } else {
+      currentApps = clone(savedApps);
+    }
+    editing = false;
+    setBtn.classList.remove('on');
+    foot.classList.remove('show');
+    document.querySelector('.modal-search').style.display = '';
+    footMsg.textContent = '';
+    renderApps('');
+  }
+  function saveApps(){
+    fetch('/apps.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentApps)
+    }).then(function(r){
+      return r.json().then(function(j){ return { ok:r.ok, status:r.status, j:j }; }).catch(function(){ return { ok:r.ok, status:r.status, j:{} }; });
+    }).then(function(res){
+      if(res.ok){
+        exitSettings(true);
+      } else if(res.status === 403){
+        footMsg.textContent = '保存失败：仅支持在本机/局域网访问时修改（外网只读）';
+      } else {
+        footMsg.textContent = '保存失败（HTTP ' + res.status + '）';
+      }
+    }).catch(function(){
+      footMsg.textContent = '保存失败：页面未通过服务器打开（file:// 模式不支持保存）';
+    });
+  }
+
+  function openAddForm(){
+    addName.value = '';
+    addUrl.value = '';
+    addErr.style.display = 'none';
+    overlay.classList.add('show');
+    setTimeout(function(){ addName.focus(); }, 50);
+  }
+  function closeAddForm(){ overlay.classList.remove('show'); }
+  document.getElementById('addOkBtn').addEventListener('click', function(){
+    var n = addName.value.trim();
+    var u = addUrl.value.trim();
+    if(!n){ addErr.textContent = '请输入名称'; addErr.style.display = 'block'; return; }
+    if(!/^https?:\/\/.+/.test(u)){ addErr.textContent = '网址需以 http:// 或 https:// 开头'; addErr.style.display = 'block'; return; }
+    currentApps.push({ name:n, url:u });
+    closeAddForm();
+    renderApps('');
+  });
+  document.getElementById('addCancelBtn').addEventListener('click', closeAddForm);
+  addUrl.addEventListener('keydown', function(e){
+    if(e.key === 'Enter') document.getElementById('addOkBtn').click();
+  });
+
   function openDock(){
     modal.classList.add('open');
     filter.value = '';
@@ -299,13 +451,33 @@ var PALETTE = [
     setTimeout(function(){ filter.focus(); }, 60);
   }
   function closeDock(){
+    if(editing) exitSettings(false);
     modal.classList.remove('open');
+    closeAddForm();
   }
   document.getElementById('dockBtn').addEventListener('click', openDock);
   document.getElementById('dockClose').addEventListener('click', closeDock);
+  setBtn.addEventListener('click', function(){ if(editing) exitSettings(false); else enterSettings(); });
+  document.getElementById('dockSaveBtn').addEventListener('click', saveApps);
+  document.getElementById('dockCancelBtn').addEventListener('click', function(){ exitSettings(false); });
   modal.addEventListener('click', function(e){ if(e.target === modal) closeDock(); });
   filter.addEventListener('input', function(){ renderApps(filter.value); });
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeDock(); });
+
+  // 启动时尝试从服务器读取已保存的应用列表（apps.json），读不到则用内置种子
+  fetch('/apps.json').then(function(r){
+    if(!r.ok) return null;
+    return r.json();
+  }).then(function(list){
+    if(Array.isArray(list) && list.length >= 0){
+      var clean = list.map(function(a){
+        return { name: String(a.name || '').slice(0, 80), url: String(a.url || '') };
+      }).filter(function(a){ return a.name && /^https?:\/\//.test(a.url); });
+      currentApps = clean;
+      savedApps = clone(clean);
+      renderApps('');
+    }
+  }).catch(function(){});
   renderApps('');
 })();
 </script>
