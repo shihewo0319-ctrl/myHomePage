@@ -33,14 +33,26 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .clock{font-size:80px;font-weight:500;line-height:1.05;letter-spacing:.02em;color:#33322f;font-variant-numeric:tabular-nums}
 .date{font-size:14px;margin-top:10px;color:#8b8a85;letter-spacing:.06em}
 .greet{font-size:16px;margin-top:22px;color:#6f6e69}
-.engines{display:flex;gap:8px;margin-top:20px}
-.eng{border:1px solid #e5e2db;background:rgba(255,255,255,.7);color:#8a8985;font-size:12.5px;padding:6px 15px;border-radius:999px;cursor:pointer;transition:all .18s;font-family:inherit;line-height:1.4}
-.eng:hover{color:#55544f;background:#fff}
-.eng.active{background:linear-gradient(135deg,#efe8fb,#e3ecf8);border-color:#cfc4e8;color:#5b5580;box-shadow:0 4px 12px rgba(150,130,220,.15)}
-.search{width:min(560px,86vw);margin-top:18px}
-.search input{width:100%;height:52px;border-radius:999px;border:1px solid #e8e5de;background:rgba(255,255,255,.85);padding:0 24px;font-size:15px;outline:none;font-family:inherit;color:#3c3b38;transition:border-color .2s,box-shadow .2s}
+.search-wrap{position:relative;width:min(560px,86vw);margin-top:18px}
+.search{display:flex;align-items:center;width:100%;border:1px solid #e8e5de;background:rgba(255,255,255,.85);border-radius:999px;transition:border-color .2s,box-shadow .2s}
+.search:focus-within{border-color:#c3b8e8;box-shadow:0 0 0 4px rgba(178,160,232,.16)}
+.eng-btn{display:flex;align-items:center;gap:7px;border:none;background:transparent;padding:0 6px 0 20px;height:52px;cursor:pointer;font-family:inherit;font-size:13.5px;color:#55544f;border-radius:999px 0 0 999px;transition:background .18s;flex-shrink:0}
+.eng-btn:hover{background:rgba(0,0,0,.03)}
+.eng-btn .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#c9b8e8,#b8d4f7);box-shadow:0 0 6px rgba(150,130,220,.35);flex-shrink:0}
+.eng-btn .caret{font-size:9px;color:#9a978f;transition:transform .18s}
+.eng-btn.open .caret{transform:rotate(180deg)}
+.search .divider{width:1px;height:22px;background:#e5e2db;flex-shrink:0}
+.search input{flex:1;min-width:0;height:52px;border:none;background:transparent;padding:0 20px 0 14px;font-size:15px;outline:none;font-family:inherit;color:#3c3b38}
 .search input::placeholder{color:#b0aea7}
-.search input:focus{border-color:#c3b8e8;box-shadow:0 0 0 4px rgba(178,160,232,.16)}
+.eng-menu{position:absolute;top:calc(100% + 8px);left:0;z-index:30;min-width:190px;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid #e9e6df;border-radius:16px;box-shadow:0 14px 34px rgba(60,55,80,.14);padding:6px;display:none;text-align:left}
+.eng-menu.open{display:block;animation:pop .16s ease}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.eng-item{display:flex;align-items:center;gap:10px;width:100%;border:none;background:transparent;padding:9px 12px;border-radius:11px;font-size:13.5px;color:#55544f;cursor:pointer;font-family:inherit;text-align:left;transition:background .15s}
+.eng-item .lbl{flex:1}
+.eng-item:hover{background:#f2f0eb}
+.eng-item.active{color:#5b5580;font-weight:600;background:linear-gradient(135deg,#f3eefb,#e9f0f9)}
+.eng-item .check{color:#8a7fb5;font-size:12px;opacity:0}
+.eng-item.active .check{opacity:1}
 .links{display:grid;grid-template-columns:repeat(4,104px);gap:18px;margin-top:40px}
 .link{display:flex;flex-direction:column;align-items:center;gap:9px;text-decoration:none;padding:18px 8px 15px;border-radius:16px;
   background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.95);color:#55544f;
@@ -69,14 +81,22 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="clock">--:--</div>
     <div class="date">—</div>
     <div class="greet">—</div>
-    <div class="engines" id="engines">
-      <button type="button" class="eng active" data-action="https://www.bing.com/search" data-name="Bing">Bing</button>
-      <button type="button" class="eng" data-action="https://www.google.com/search" data-name="Google">Google</button>
-      <button type="button" class="eng" data-action="https://duckduckgo.com/" data-name="DuckDuckGo">DuckDuckGo</button>
+    <div class="search-wrap">
+      <form class="search" id="searchForm" action="https://www.bing.com/search" method="get" target="_blank">
+        <button type="button" class="eng-btn" id="engBtn" aria-haspopup="true">
+          <span class="dot"></span>
+          <span class="eng-label" id="engLabel">Bing</span>
+          <span class="caret">▾</span>
+        </button>
+        <span class="divider"></span>
+        <input type="text" name="q" placeholder="搜索或输入网址，回车直达 Bing" autocomplete="off">
+      </form>
+      <div class="eng-menu" id="engMenu">
+        <button type="button" class="eng-item active" data-action="https://www.bing.com/search" data-name="Bing"><span class="lbl">Bing</span><span class="check">✓</span></button>
+        <button type="button" class="eng-item" data-action="https://www.google.com/search" data-name="Google"><span class="lbl">Google</span><span class="check">✓</span></button>
+        <button type="button" class="eng-item" data-action="https://duckduckgo.com/" data-name="DuckDuckGo"><span class="lbl">DuckDuckGo</span><span class="check">✓</span></button>
+      </div>
     </div>
-    <form class="search" id="searchForm" action="https://www.bing.com/search" method="get" target="_blank">
-      <input type="text" name="q" placeholder="搜索或输入网址，回车直达 Bing" autocomplete="off">
-    </form>
   </div>
   <nav class="links">
     <a class="link" href="https://www.bilibili.com" target="_blank" rel="noopener"><span class="ic">▶</span><span class="lb">视频</span></a>
@@ -116,23 +136,49 @@ function tick(){
 tick();
 setInterval(tick, 1000);
 
-// 搜索引擎切换
+// 搜索引擎切换（搜索框内左侧下拉按钮）
 (function(){
   var form = document.getElementById('searchForm');
   var input = form.querySelector('input');
-  var engs = document.querySelectorAll('.eng');
-  function apply(btn){
-    engs.forEach(function(e){ e.classList.remove('active'); });
-    btn.classList.add('active');
-    form.action = btn.getAttribute('data-action');
-    input.placeholder = '搜索或输入网址，回车直达 ' + btn.getAttribute('data-name');
+  var btn = document.getElementById('engBtn');
+  var label = document.getElementById('engLabel');
+  var menu = document.getElementById('engMenu');
+  var items = menu.querySelectorAll('.eng-item');
+
+  function setEngine(item){
+    label.textContent = item.getAttribute('data-name');
+    form.action = item.getAttribute('data-action');
+    input.placeholder = '搜索或输入网址，回车直达 ' + item.getAttribute('data-name');
+    items.forEach(function(i){ i.classList.toggle('active', i === item); });
   }
-  engs.forEach(function(btn){
-    btn.addEventListener('click', function(){ apply(btn); });
+  function closeMenu(){
+    menu.classList.remove('open');
+    btn.classList.remove('open');
+  }
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    var isOpen = menu.classList.contains('open');
+    closeMenu();
+    if(!isOpen){
+      menu.classList.add('open');
+      btn.classList.add('open');
+    }
   });
-  // 初始化默认 Bing
-  var def = document.querySelector('.eng.active') || engs[0];
-  apply(def);
+  items.forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.stopPropagation();
+      setEngine(item);
+      closeMenu();
+    });
+  });
+  document.addEventListener('click', function(){
+    closeMenu();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeMenu();
+  });
+  // 默认 Bing
+  setEngine(menu.querySelector('.eng-item.active') || items[0]);
 })();
 </script>
 </body>
