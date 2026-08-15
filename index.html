@@ -412,8 +412,6 @@ var PALETTE = [
     }).then(function(res){
       if(res.ok){
         exitSettings(true);
-      } else if(res.status === 403){
-        footMsg.textContent = '保存失败：仅支持在本机/局域网访问时修改（外网只读）';
       } else {
         footMsg.textContent = '保存失败（HTTP ' + res.status + '）';
       }

@@ -6,10 +6,9 @@
 接口:
     - 静态托管当前目录
     - GET  /apps.json                    返回应用台列表（无文件时为 404）
-    - POST /apps.json                    保存应用台列表（仅限本机/局域网来源，防外网篡改）
+    - POST /apps.json                    保存应用台列表（任何来源可写；请自行保密网址）
     - GET  /favicon/?u=<scheme://host>   抓取并缓存该站点真实图标
 """
-import ipaddress
 import json
 import os
 import re
@@ -67,24 +66,6 @@ def load_allowlist():
     _allow_cache["key"] = key
     _allow_cache["origins"] = origins
     return origins
-
-
-def is_local_ip(ip):
-    """判断客户端来源是否为本机/局域网（用于限制写操作）。"""
-    try:
-        a = ipaddress.ip_address(ip)
-    except ValueError:
-        return False
-    if a.is_loopback or a.is_link_local or a.is_private or a.is_reserved:
-        return True
-    if isinstance(a, ipaddress.IPv6Address):
-        try:
-            mapped = a.ipv4_mapped
-            if mapped:
-                return mapped.is_private or mapped.is_loopback
-        except AttributeError:
-            pass
-    return False
 
 
 # ---------- favicon 抓取 ----------
@@ -209,9 +190,6 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == "/apps.json":
-            if not is_local_ip(self.client_address[0]):
-                self.send_error(403, "local access required")
-                return
             try:
                 length = int(self.headers.get("Content-Length") or 0)
                 body = self.rfile.read(length) if length else b""
