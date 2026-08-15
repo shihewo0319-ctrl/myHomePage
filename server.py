@@ -5,9 +5,9 @@
     python3 server.py [端口]        # 默认 43210
 接口:
     - 静态托管当前目录
-    - GET  /apps.json                    返回应用台列表（无文件时为 404）
-    - POST /apps.json                    保存应用台列表（任何来源可写；请自行保密网址）
-    - GET  /favicon/?u=<scheme://host>   抓取并缓存该站点真实图标
+    - GET  /apps.json   /cards.json        返回对应列表（无文件时为 404）
+    - POST /apps.json   /cards.json        保存对应列表（任何来源可写；请自行保密网址）
+    - GET  /favicon/?u=<scheme://host>     抓取并缓存该站点真实图标
 """
 import json
 import os
@@ -22,6 +22,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 APPS_FILE = ROOT / "apps.json"
+CARDS_FILE = ROOT / "cards.json"
+LIST_FILES = {"apps": APPS_FILE, "cards": CARDS_FILE}
 CACHE = Path.home() / ".cache" / "myhomepage-favicons"
 CACHE.mkdir(parents=True, exist_ok=True)
 
@@ -49,8 +51,8 @@ def load_allowlist():
         mt1 = (ROOT / "index.html").stat().st_mtime
     except OSError:
         mt1 = 0
-    mt2 = APPS_FILE.stat().st_mtime if APPS_FILE.exists() else 0
-    key = (mt1, mt2)
+    mts = tuple(f.stat().st_mtime if f.exists() else 0 for f in LIST_FILES.values())
+    key = (mt1,) + mts
     if key == _allow_cache["key"]:
         return _allow_cache["origins"]
     origins = set()
@@ -58,11 +60,12 @@ def load_allowlist():
         origins |= _origins_from_text((ROOT / "index.html").read_text(encoding="utf-8", errors="ignore"))
     except OSError:
         pass
-    if APPS_FILE.exists():
-        try:
-            origins |= _origins_from_text(APPS_FILE.read_text(encoding="utf-8", errors="ignore"))
-        except OSError:
-            pass
+    for f in LIST_FILES.values():
+        if f.exists():
+            try:
+                origins |= _origins_from_text(f.read_text(encoding="utf-8", errors="ignore"))
+            except OSError:
+                pass
     _allow_cache["key"] = key
     _allow_cache["origins"] = origins
     return origins
@@ -152,15 +155,16 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/apps.json":
-            if APPS_FILE.exists():
-                try:
-                    self._send_json(json.loads(APPS_FILE.read_text(encoding="utf-8")))
-                except Exception:
-                    self.send_error(500, "apps.json corrupted")
-            else:
-                self.send_error(404, "no apps.json")
-            return
+        for name, f in LIST_FILES.items():
+            if parsed.path == f"/{name}.json":
+                if f.exists():
+                    try:
+                        self._send_json(json.loads(f.read_text(encoding="utf-8")))
+                    except Exception:
+                        self.send_error(500, f"{name}.json corrupted")
+                else:
+                    self.send_error(404, f"no {name}.json")
+                return
         if parsed.path == "/favicon/":
             qs = urllib.parse.parse_qs(parsed.query)
             u = (qs.get("u") or [""])[0]
@@ -189,39 +193,40 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/apps.json":
-            try:
-                length = int(self.headers.get("Content-Length") or 0)
-                body = self.rfile.read(length) if length else b""
-                lst = json.loads(body.decode("utf-8"))
-                if not isinstance(lst, list):
-                    raise ValueError
-            except Exception:
-                self.send_error(400, "invalid JSON list")
+        for name, f in LIST_FILES.items():
+            if parsed.path == f"/{name}.json":
+                try:
+                    length = int(self.headers.get("Content-Length") or 0)
+                    body = self.rfile.read(length) if length else b""
+                    lst = json.loads(body.decode("utf-8"))
+                    if not isinstance(lst, list):
+                        raise ValueError
+                except Exception:
+                    self.send_error(400, "invalid JSON list")
+                    return
+                clean = []
+                seen = set()
+                for item in lst:
+                    if not isinstance(item, dict):
+                        continue
+                    item_name = str(item.get("name", "")).strip()
+                    url = str(item.get("url", "")).strip()
+                    if not item_name or len(item_name) > 80:
+                        continue
+                    p = urllib.parse.urlparse(url)
+                    if p.scheme not in ("http", "https") or not p.netloc:
+                        continue
+                    if url in seen:
+                        continue
+                    seen.add(url)
+                    clean.append({"name": item_name[:80], "url": url})
+                clean = clean[:200]
+                tmp = f.with_suffix(".json.tmp")
+                tmp.write_text(json.dumps(clean, ensure_ascii=False, indent=2), encoding="utf-8")
+                os.replace(tmp, f)
+                _allow_cache["key"] = None
+                self._send_json({"ok": True, "count": len(clean)})
                 return
-            clean = []
-            seen = set()
-            for item in lst:
-                if not isinstance(item, dict):
-                    continue
-                name = str(item.get("name", "")).strip()
-                url = str(item.get("url", "")).strip()
-                if not name or len(name) > 80:
-                    continue
-                p = urllib.parse.urlparse(url)
-                if p.scheme not in ("http", "https") or not p.netloc:
-                    continue
-                if url in seen:
-                    continue
-                seen.add(url)
-                clean.append({"name": name[:80], "url": url})
-            clean = clean[:200]
-            tmp = APPS_FILE.with_suffix(".json.tmp")
-            tmp.write_text(json.dumps(clean, ensure_ascii=False, indent=2), encoding="utf-8")
-            os.replace(tmp, APPS_FILE)
-            _allow_cache["key"] = None
-            self._send_json({"ok": True, "count": len(clean)})
-            return
         self.send_error(404)
 
     def log_message(self, fmt, *args):
@@ -236,5 +241,5 @@ if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 43210
     HTTPServerV6.allow_reuse_address = True
     srv = HTTPServerV6(("::", port), Handler)
-    print(f"myHomePage: http://[::]:{port}/  (含 /favicon/ 图标代理与 /apps.json 应用台存储)", flush=True)
+    print(f"myHomePage: http://[::]:{port}/  (含 /favicon/ 图标代理与 /apps.json /cards.json 列表存储)", flush=True)
     srv.serve_forever()

@@ -116,6 +116,34 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .add-err{font-size:12px;color:#c0554b;margin:0 0 10px;display:none}
 .add-actions{display:flex;justify-content:flex-end;gap:8px}
 
+/* 大卡片区 */
+.cards-area{position:relative;width:min(760px,92vw);margin-top:46px}
+.cards-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 6px}
+.cards-title{font-size:13px;font-weight:600;color:#8a8578;letter-spacing:.14em}
+.cards-set-btn{border:1px solid #e5e2db;background:rgba(255,255,255,.75);border-radius:999px;padding:5px 14px;cursor:pointer;color:#6f6e69;font-size:12px;font-family:inherit;transition:background .15s,border-color .15s,color .15s}
+.cards-set-btn:hover{background:#fff}
+.cards-set-btn.on{background:linear-gradient(135deg,#efe8fb,#e3ecf8);border-color:#cfc4e8;color:#5b5580}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px}
+.card-item{display:flex;align-items:center;gap:16px;text-decoration:none;padding:20px 22px;border-radius:20px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.95);box-shadow:0 6px 16px rgba(60,55,80,.07);transition:transform .18s,box-shadow .18s,background .18s;position:relative}
+.card-item:hover{transform:translateY(-4px);background:rgba(255,255,255,.94);box-shadow:0 14px 28px rgba(60,55,80,.13)}
+.card-item .cav{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0;position:relative;overflow:hidden}
+.card-item .cav .fav{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px;background:#fff;border-radius:14px;box-sizing:border-box}
+.card-item .cinfo{display:flex;flex-direction:column;gap:4px;min-width:0;text-align:left;flex:1}
+.card-item .cname{font-size:14.5px;font-weight:600;color:#4a4842;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-item .cdomain{font-size:11.5px;color:#a5a29a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cards-grid.editing .card-item{cursor:default}
+.cards-grid.editing .card-item:hover{transform:none;background:rgba(255,255,255,.85)}
+.cards-empty{grid-column:1/-1;text-align:center;color:#b0ada5;font-size:13px;padding:26px 0;border:2px dashed #e2ded3;border-radius:18px;background:rgba(255,255,255,.4)}
+.card-item.add-tile{flex-direction:column;justify-content:center;gap:8px;border:2px dashed #d8d4c8;background:rgba(255,255,255,.5);color:#9a978f;cursor:pointer;font-family:inherit}
+.card-item.add-tile:hover{transform:translateY(-3px);background:#fff}
+.cav.plus{background:#f2f0eb;color:#8a8578}
+.cards-foot{display:none;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding:0 6px}
+.cards-foot.show{display:flex}
+.cards-foot .foot-msg{flex:1;text-align:left}
+.cards-add-overlay{position:absolute;inset:-24px -26px -26px;z-index:5;background:rgba(250,249,246,.9);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;border-radius:22px}
+.cards-add-overlay.show{display:flex}
+@media (max-width:560px){.cards-grid{grid-template-columns:1fr 1fr;gap:10px}.card-item{padding:12px;gap:10px}.card-item .cav{width:40px;height:40px}.card-item .cname{font-size:13px}}
+
 @media (max-width:560px){
   .links{grid-template-columns:repeat(5,60px);gap:8px}
   .link{padding:12px 3px 10px}
@@ -162,6 +190,33 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     <a class="link" href="https://mail.google.com" target="_blank" rel="noopener"><span class="ic">✉️</span><span class="lb">Gmail</span></a>
     <a class="link" href="https://mail.proton.me" target="_blank" rel="noopener"><span class="ic">🔐</span><span class="lb">ProtonMail</span></a>
   </nav>
+
+  <section class="cards-area">
+    <div class="cards-head">
+      <span class="cards-title">我的卡片</span>
+      <button class="cards-set-btn" id="cardsSetBtn">⚙ 设置</button>
+    </div>
+    <div class="cards-grid" id="cardsGrid"></div>
+    <div class="cards-foot" id="cardsFoot">
+      <span class="foot-msg" id="cardsFootMsg"></span>
+      <div class="foot-btns">
+        <button class="cancel-btn" id="cardsCancelBtn">取消</button>
+        <button class="save-btn" id="cardsSaveBtn">保存</button>
+      </div>
+    </div>
+    <div class="cards-add-overlay" id="cardsAddOverlay">
+      <div class="add-box">
+        <div class="add-title">添加卡片</div>
+        <input type="text" id="cardsAddName" placeholder="名称（如 DeepSeek）" autocomplete="off">
+        <input type="text" id="cardsAddUrl" placeholder="网址（https://chat.deepseek.com）" autocomplete="off">
+        <p class="add-err" id="cardsAddErr"></p>
+        <div class="add-actions">
+          <button class="cancel-btn" id="cardsAddCancelBtn">取消</button>
+          <button class="save-btn" id="cardsAddOkBtn">添加</button>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <!-- 应用台弹窗 -->
@@ -477,6 +532,185 @@ var PALETTE = [
     }
   }).catch(function(){});
   renderApps('');
+})();
+
+// ===== 大卡片区（种子数据在 CARD_SEED，设置里可增删，保存到服务器 cards.json）=====
+var CARD_SEED = [
+  { name:'bilibili',   url:'https://www.bilibili.com/' },
+  { name:'GitHub',     url:'https://github.com' },
+  { name:'YouTube',    url:'https://www.youtube.com/' },
+  { name:'Gmail',      url:'https://mail.google.com' },
+  { name:'ProtonMail', url:'https://mail.proton.me' }
+];
+(function(){
+  var grid = document.getElementById('cardsGrid');
+  var setBtn = document.getElementById('cardsSetBtn');
+  var foot = document.getElementById('cardsFoot');
+  var footMsg = document.getElementById('cardsFootMsg');
+  var overlay = document.getElementById('cardsAddOverlay');
+  var addName = document.getElementById('cardsAddName');
+  var addUrl = document.getElementById('cardsAddUrl');
+  var addErr = document.getElementById('cardsAddErr');
+
+  var editing = false;
+  var current = CARD_SEED.map(function(a){ return { name:a.name, url:a.url }; });
+  var saved = current.map(function(a){ return { name:a.name, url:a.url }; });
+
+  function clone(list){ return list.map(function(a){ return { name:a.name, url:a.url }; }); }
+  function hashOf(s){ var h=0; for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+
+  function renderCards(){
+    grid.innerHTML = '';
+    grid.classList.toggle('editing', editing);
+    var shown = 0;
+    current.forEach(function(app, idx){
+      shown++;
+      var domain = '';
+      var origin = null;
+      try { var u = new URL(app.url); origin = u.origin; domain = u.host; } catch(e) { domain = app.url; }
+      var c = PALETTE[hashOf(domain) % PALETTE.length];
+      var a = document.createElement('a');
+      a.className = 'card-item';
+      a.href = app.url;
+      var cav = document.createElement('span');
+      cav.className = 'cav';
+      cav.style.background = c[0];
+      cav.style.color = c[1];
+      cav.textContent = (app.name.charAt(0) || '?').toUpperCase();
+      if(origin){
+        var img = document.createElement('img');
+        img.className = 'fav';
+        img.alt = '';
+        img.src = '/favicon/?u=' + encodeURIComponent(origin);
+        img.addEventListener('error', function(){ img.remove(); });
+        cav.appendChild(img);
+      }
+      var info = document.createElement('span');
+      info.className = 'cinfo';
+      var nm = document.createElement('span');
+      nm.className = 'cname';
+      nm.textContent = app.name;
+      var dm = document.createElement('span');
+      dm.className = 'cdomain';
+      dm.textContent = domain;
+      info.appendChild(nm);
+      info.appendChild(dm);
+      a.appendChild(cav);
+      a.appendChild(info);
+      if(editing){
+        a.addEventListener('click', function(e){ e.preventDefault(); });
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'del';
+        del.textContent = '✕';
+        del.title = '删除 ' + app.name;
+        del.addEventListener('click', function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          current.splice(idx, 1);
+          renderCards();
+        });
+        a.appendChild(del);
+      } else {
+        a.target = '_blank';
+        a.rel = 'noopener';
+      }
+      grid.appendChild(a);
+    });
+    if(editing){
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'card-item add-tile';
+      add.innerHTML = '<span class="cav plus">＋</span><span class="cname">添加卡片</span>';
+      add.addEventListener('click', openAddForm);
+      grid.appendChild(add);
+    } else if(shown === 0){
+      var p = document.createElement('p');
+      p.className = 'cards-empty';
+      p.textContent = '还没有卡片，点右上角「⚙ 设置」添加';
+      grid.appendChild(p);
+    }
+  }
+
+  function enterEdit(){
+    current = clone(saved);
+    editing = true;
+    setBtn.classList.add('on');
+    foot.classList.add('show');
+    footMsg.textContent = '编辑后记得点「保存」';
+    renderCards();
+  }
+  function exitEdit(commit){
+    if(commit){
+      saved = clone(current);
+    } else {
+      current = clone(saved);
+    }
+    editing = false;
+    setBtn.classList.remove('on');
+    foot.classList.remove('show');
+    footMsg.textContent = '';
+    renderCards();
+  }
+  function saveCards(){
+    fetch('/cards.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(current)
+    }).then(function(r){
+      return r.json().then(function(){ return { ok:r.ok, status:r.status }; }).catch(function(){ return { ok:r.ok, status:r.status }; });
+    }).then(function(res){
+      if(res.ok){
+        exitEdit(true);
+      } else {
+        footMsg.textContent = '保存失败（HTTP ' + res.status + '）';
+      }
+    }).catch(function(){
+      footMsg.textContent = '保存失败：页面未通过服务器打开（file:// 模式不支持保存）';
+    });
+  }
+
+  function openAddForm(){
+    addName.value = '';
+    addUrl.value = '';
+    addErr.style.display = 'none';
+    overlay.classList.add('show');
+    setTimeout(function(){ addName.focus(); }, 50);
+  }
+  function closeAddForm(){ overlay.classList.remove('show'); }
+  document.getElementById('cardsAddOkBtn').addEventListener('click', function(){
+    var n = addName.value.trim();
+    var u = addUrl.value.trim();
+    if(!n){ addErr.textContent = '请输入名称'; addErr.style.display = 'block'; return; }
+    if(!/^https?:\/\/.+/.test(u)){ addErr.textContent = '网址需以 http:// 或 https:// 开头'; addErr.style.display = 'block'; return; }
+    current.push({ name:n, url:u });
+    closeAddForm();
+    renderCards();
+  });
+  document.getElementById('cardsAddCancelBtn').addEventListener('click', closeAddForm);
+  addUrl.addEventListener('keydown', function(e){
+    if(e.key === 'Enter') document.getElementById('cardsAddOkBtn').click();
+  });
+
+  setBtn.addEventListener('click', function(){ if(editing) exitEdit(false); else enterEdit(); });
+  document.getElementById('cardsSaveBtn').addEventListener('click', saveCards);
+  document.getElementById('cardsCancelBtn').addEventListener('click', function(){ exitEdit(false); });
+
+  // 启动时从服务器读取已保存的卡片列表
+  fetch('/cards.json').then(function(r){
+    if(!r.ok) return null;
+    return r.json();
+  }).then(function(list){
+    if(Array.isArray(list) && list.length >= 0){
+      var clean = list.map(function(a){
+        return { name: String(a.name || '').slice(0, 80), url: String(a.url || '') };
+      }).filter(function(a){ return a.name && /^https?:\/\//.test(a.url); });
+      current = clean;
+      saved = clone(clean);
+      renderCards();
+    }
+  }).catch(function(){});
+  renderCards();
 })();
 </script>
 </body>
