@@ -83,7 +83,8 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .dock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
 .dock-app{display:flex;flex-direction:column;align-items:center;gap:9px;text-decoration:none;padding:14px 6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.95);background:rgba(255,255,255,.75);transition:transform .16s,box-shadow .16s,background .16s;box-shadow:0 4px 12px rgba(60,55,80,.06)}
 .dock-app:hover{transform:translateY(-3px);background:#fff;box-shadow:0 10px 22px rgba(60,55,80,.12)}
-.av{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
+.av{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;position:relative;overflow:hidden}
+.av .fav{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:7px;background:#fff;border-radius:13px;box-sizing:border-box}
 .nm{font-size:12px;color:#5c5b55;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dock-empty{grid-column:1/-1;text-align:center;color:#a5a29a;font-size:13px;padding:30px 0}
 
@@ -264,6 +265,17 @@ var PALETTE = [
       av.style.background = c[0];
       av.style.color = c[1];
       av.textContent = (app.name.charAt(0) || '?').toUpperCase();
+      // 真实网页图标：经本机服务器 /favicon/ 代理抓取，失败自动回退字母
+      var origin = null;
+      try { origin = new URL(app.url).origin; } catch(e) {}
+      if(origin){
+        var img = document.createElement('img');
+        img.className = 'fav';
+        img.alt = '';
+        img.src = '/favicon/?u=' + encodeURIComponent(origin);
+        img.addEventListener('error', function(){ img.remove(); });
+        av.appendChild(img);
+      }
       var nm = document.createElement('span');
       nm.className = 'nm';
       nm.textContent = app.name;

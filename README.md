@@ -12,7 +12,7 @@
 
 - **Chrome / Edge（主页按钮）**：设置 → 启动时 → 打开特定网页或一组网页 → 添加本页路径。
 - **新标签页**：Chrome 需要扩展（例如 New Tab Redirect）才能替换新标签页；Edge 可在「启动时」设置；Firefox 可通过 about:preferences 设置主页。
-- **推荐做法**：把本目录托管到 GitHub Pages 或本地起一个静态服务（如 `python3 -m http.server`），然后用生成的网址设置，体验更完整。
+- **推荐做法**：本目录自带服务器脚本，`python3 server.py 43210` 即可启动（除静态页面外还内置 `/favicon/` 网页图标代理，为应用台抓取并缓存各站点真实图标）；或托管到 GitHub Pages。
 
 ## 自定义
 
